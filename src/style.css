@@ -1,3 +1,20 @@
-label {
-    color: red;
+progressbar {
+    min-height: 30px;
+    margin-top: 10px;
+}
+
+progressbar > trough {
+    min-height: 30px;
+    background-color: white;
+}
+
+progressbar > trough > progress {
+    min-height: 30px;
+    background-color: greenyellow;
+}
+
+progressbar > text {
+    font-style: italic;
+    font-size: xx-large;
+    color: cornflowerblue;
 }

@@ -1,6 +1,6 @@
 use sysinfo::System;
-
-use gtk::{gdk, glib, CssProvider, prelude::*, ApplicationWindow, Label, Notebook};
+use chrono::Local;
+use gtk::{gdk, glib, CssProvider, prelude::*, ApplicationWindow, Label, Notebook, Box, ProgressBar};
 
 use adw::Application;
 
@@ -15,11 +15,37 @@ fn get_info() ->  String{
 }
 
 fn draw_gui(app: &Application){
+    let mbox = Box::new(gtk::Orientation::Vertical, 0);
     let mem_label = Label::new(Some(get_info().as_str()));
 
-    let tabs = Notebook::new();
-    tabs.append_page(&mem_label, Some(&Label::new(Some("MEM INFO"))));
+    let bar = ProgressBar::new();
+    bar.set_fraction(0.0);
+    bar.set_text(Some("Memory used"));
+    bar.shows_text();
     
+    mbox.append(&bar);
+    mbox.append(&mem_label);
+
+    let tabs = Notebook::new();
+    tabs.append_page(&mbox, Some(&Label::new(Some("MEM INFO"))));
+
+    let tick = move || {
+        let mut sys = System::new_all();
+        sys.refresh_all();
+
+        let used = (sys.used_memory() / (1024 * 1024)) as f64;
+        let total = (sys.total_memory() / (1024 * 1024)) as f64;
+
+        let fr: f64 = used / total;
+        println!("fr {}", fr);
+        bar.set_fraction(fr);
+        glib::ControlFlow::Continue
+    };
+
+
+    // executes the closure once every second
+    glib::timeout_add_seconds_local(0, tick);
+
     let window = ApplicationWindow::builder()
         .application(app)
         .default_height(500)
