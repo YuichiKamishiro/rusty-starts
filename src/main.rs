@@ -1,8 +1,10 @@
 use gtk::{
     gdk, glib, prelude::*, ApplicationWindow, Box, CssProvider, Label, Notebook, ProgressBar,
 };
-use sysinfo::System;
 use sysinfo::Disks;
+use sysinfo::System;
+
+use std::sync::Arc;
 
 use adw::Application;
 
@@ -34,38 +36,51 @@ fn get_disk_info() -> String {
     let mut sys = System::new_all();
     sys.refresh_all();
 
-    let mut stringInfo = String::new();
+    let mut string_info = String::new();
 
     let disks = Disks::new_with_refreshed_list();
-    for disk in &disks{
-        stringInfo.push_str(&format!("{disk:?}\n"));
+    for disk in &disks {
+        string_info.push_str(&format!(
+            "Disk: {}\n\tSpace used {} / {}\n\tMount point {}\n",
+            disk.name().to_str().unwrap(),
+            disk.available_space() / (1024 * 1024),
+            disk.total_space() / (1024 * 1024),
+            disk.mount_point().to_str().unwrap()
+        ));
     }
 
-
-    stringInfo
+    string_info
 }
 
-fn draw_gui(app: &Application) {
+fn get_memory_page(bar: &ProgressBar) -> Box {
     let mbox = Box::new(gtk::Orientation::Vertical, 0);
     let mem_label = Label::new(Some(get_memory_info().as_str()));
+    mem_label.add_css_class("text");
 
-    let bar = ProgressBar::new();
     bar.set_fraction(0.0);
 
     let nlabel = Label::new(Some(""));
     nlabel.set_halign(gtk::Align::Start);
     nlabel.set_margin_start(20);
     nlabel.set_margin_top(50);
+    nlabel.add_css_class("text");
 
-    mbox.append(&bar);
+    mbox.append(bar);
     mbox.append(&mem_label);
     mbox.append(&nlabel);
+    mbox
+}
+
+fn draw_gui(app: &Application) {
+    let bar = ProgressBar::new();
 
     let os_label = Label::new(Some(&get_os_info()));
     let disk_label = Label::new(Some(&get_disk_info()));
+    os_label.add_css_class("text");
+    disk_label.add_css_class("text");
 
     let tabs = Notebook::new();
-    tabs.append_page(&mbox, Some(&Label::new(Some("MEM INFO"))));
+    tabs.append_page(&get_memory_page(&bar), Some(&Label::new(Some("MEM INFO"))));
     tabs.append_page(&os_label, Some(&Label::new(Some("OS INFO"))));
     tabs.append_page(&disk_label, Some(&Label::new(Some("DISK INFO"))));
 

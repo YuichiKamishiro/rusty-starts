@@ -17,6 +17,6 @@ progressbar > text {
     font-size: xx-large;
     color: cornflowerblue;
 }
-label {
+.text {
     font-size: 30px;
 }
