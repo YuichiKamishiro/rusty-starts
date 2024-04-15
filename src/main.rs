@@ -1,26 +1,58 @@
+use gtk::{
+    gdk, glib, prelude::*, ApplicationWindow, Box, CssProvider, Label, Notebook, ProgressBar,
+};
 use sysinfo::System;
-use chrono::Local;
-use gtk::{gdk, glib, CssProvider, prelude::*, ApplicationWindow, Label, Notebook, Box, FlowBox, ProgressBar};
+use sysinfo::Disks;
 
 use adw::Application;
 
-fn get_info() ->  String{
+fn get_memory_info() -> String {
     let mut sys = System::new_all();
     sys.refresh_all();
 
-    format!("Used {}/{}",
+    format!(
+        "Used {1}/{0}",
         sys.total_memory() / (1024 * 1024),
-        sys.used_memory() / (1024 * 1024))
+        sys.used_memory() / (1024 * 1024)
+    )
 }
 
-fn draw_gui(app: &Application){
+fn get_os_info() -> String {
+    let mut sys = System::new_all();
+    sys.refresh_all();
+
+    format!(
+        "System name {}\nKernel ver {}\nOs ver {}\nHostname {}",
+        System::name().unwrap(),
+        System::kernel_version().unwrap(),
+        System::os_version().unwrap(),
+        System::host_name().unwrap()
+    )
+}
+
+fn get_disk_info() -> String {
+    let mut sys = System::new_all();
+    sys.refresh_all();
+
+    let mut stringInfo = String::new();
+
+    let disks = Disks::new_with_refreshed_list();
+    for disk in &disks{
+        stringInfo.push_str(&format!("{disk:?}\n"));
+    }
+
+
+    stringInfo
+}
+
+fn draw_gui(app: &Application) {
     let mbox = Box::new(gtk::Orientation::Vertical, 0);
-    let mem_label = Label::new(Some(get_info().as_str()));
-    
+    let mem_label = Label::new(Some(get_memory_info().as_str()));
+
     let bar = ProgressBar::new();
     bar.set_fraction(0.0);
-    
-    let nlabel = Label::new(Some("Coming soon...info about mem"));
+
+    let nlabel = Label::new(Some(""));
     nlabel.set_halign(gtk::Align::Start);
     nlabel.set_margin_start(20);
     nlabel.set_margin_top(50);
@@ -28,9 +60,14 @@ fn draw_gui(app: &Application){
     mbox.append(&bar);
     mbox.append(&mem_label);
     mbox.append(&nlabel);
-    
+
+    let os_label = Label::new(Some(&get_os_info()));
+    let disk_label = Label::new(Some(&get_disk_info()));
+
     let tabs = Notebook::new();
     tabs.append_page(&mbox, Some(&Label::new(Some("MEM INFO"))));
+    tabs.append_page(&os_label, Some(&Label::new(Some("OS INFO"))));
+    tabs.append_page(&disk_label, Some(&Label::new(Some("DISK INFO"))));
 
     let tick = move || {
         let mut sys = System::new_all();
@@ -68,13 +105,11 @@ fn load_css() {
     );
 }
 
-fn main() -> glib::ExitCode{
-    let app = Application::builder()
-        .application_id(ID)
-        .build();
+fn main() -> glib::ExitCode {
+    let app = Application::builder().application_id(ID).build();
 
     app.connect_startup(|_| load_css());
     app.connect_activate(draw_gui);
-    
+
     app.run()
 }
