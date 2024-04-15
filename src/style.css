@@ -5,16 +5,18 @@ progressbar {
 
 progressbar > trough {
     min-height: 30px;
-    background-color: white;
 }
 
 progressbar > trough > progress {
     min-height: 30px;
-    background-color: greenyellow;
+    background-color: blue;
 }
 
 progressbar > text {
     font-style: italic;
     font-size: xx-large;
     color: cornflowerblue;
+}
+label {
+    font-size: 30px;
 }
