@@ -1,10 +1,9 @@
 use gtk::{
-    gdk, glib, prelude::*, ApplicationWindow, Box, CssProvider, Label, Notebook, ProgressBar,
+    gdk, glib, prelude::*, ApplicationWindow, ScrolledWindow, Box, CssProvider, Label, Notebook, ProgressBar,
 };
+use gtk::Scrollbar;
 use sysinfo::Disks;
 use sysinfo::System;
-
-use std::sync::Arc;
 
 use adw::Application;
 
@@ -13,9 +12,20 @@ fn get_memory_info() -> String {
     sys.refresh_all();
 
     format!(
-        "Used {1}/{0}",
+        "Used mem {1}/{0}",
         sys.total_memory() / (1024 * 1024),
         sys.used_memory() / (1024 * 1024)
+    )
+}
+
+fn get_swap_info() -> String {
+    let mut sys = System::new_all();
+    sys.refresh_all();
+
+    format!(
+        "Used swap {1}/{0}",
+        sys.total_swap() / (1024 * 1024),
+        sys.used_swap() / (1024 * 1024)
     )
 }
 
@@ -52,47 +62,57 @@ fn get_disk_info() -> String {
     string_info
 }
 
-fn get_memory_page(bar: &ProgressBar) -> Box {
+fn get_memory_page(mem_bar: &ProgressBar, swap_bar: &ProgressBar) -> Box {
     let mbox = Box::new(gtk::Orientation::Vertical, 0);
-    let mem_label = Label::new(Some(get_memory_info().as_str()));
+    let mem_label = Label::new(Some(&get_memory_info()));
     mem_label.add_css_class("text");
 
-    bar.set_fraction(0.0);
+    let swap_label = Label::new(Some(&get_swap_info()));
+    swap_label.add_css_class("text");
 
-    let nlabel = Label::new(Some(""));
-    nlabel.set_halign(gtk::Align::Start);
-    nlabel.set_margin_start(20);
-    nlabel.set_margin_top(50);
-    nlabel.add_css_class("text");
-
-    mbox.append(bar);
+    mbox.append(mem_bar);
     mbox.append(&mem_label);
-    mbox.append(&nlabel);
+    mbox.append(swap_bar);
+    mbox.append(&swap_label);
     mbox
 }
 
 fn draw_gui(app: &Application) {
-    let bar = ProgressBar::new();
+    let mem_bar = ProgressBar::new();
+    let swap_bar = ProgressBar::new();
 
     let os_label = Label::new(Some(&get_os_info()));
     let disk_label = Label::new(Some(&get_disk_info()));
     os_label.add_css_class("text");
     disk_label.add_css_class("text");
 
+    let scrolled_window = ScrolledWindow::builder()
+    .min_content_width(10)
+    .hscrollbar_policy(gtk::PolicyType::Never)
+    .child(&disk_label)
+    .build();
+
+
     let tabs = Notebook::new();
-    tabs.append_page(&get_memory_page(&bar), Some(&Label::new(Some("MEM INFO"))));
+    tabs.append_page(&get_memory_page(&mem_bar, &swap_bar), Some(&Label::new(Some("MEM INFO"))));
     tabs.append_page(&os_label, Some(&Label::new(Some("OS INFO"))));
-    tabs.append_page(&disk_label, Some(&Label::new(Some("DISK INFO"))));
+    tabs.append_page(&scrolled_window, Some(&Label::new(Some("!DISK INFO"))));
 
     let tick = move || {
         let mut sys = System::new_all();
         sys.refresh_all();
 
-        let used = (sys.used_memory() / (1024 * 1024)) as f64;
-        let total = (sys.total_memory() / (1024 * 1024)) as f64;
+        let mut used = (sys.used_memory() / (1024 * 1024)) as f64;
+        let mut total = (sys.total_memory() / (1024 * 1024)) as f64;
 
-        let fr: f64 = used / total;
-        bar.set_fraction(fr);
+        let mut fr: f64 = used / total;
+        mem_bar.set_fraction(fr);
+
+        used = (sys.used_swap() / (1024 * 1024)) as f64;
+        total = (sys.total_swap() / (1024 * 1024)) as f64;
+
+        fr = used / total;
+        swap_bar.set_fraction(fr);
         glib::ControlFlow::Continue
     };
 
