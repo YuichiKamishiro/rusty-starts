@@ -1,9 +1,9 @@
-use crate::page_info;
+use crate::page_info::{self, networks};
 use gtk::{
     gdk, glib, prelude::*, ApplicationWindow, CssProvider, Label, Notebook, ProgressBar,
     ScrolledWindow,
 };
-use sysinfo::System;
+use sysinfo::{Networks, System};
 
 use adw::Application;
 
@@ -21,18 +21,32 @@ pub fn draw_gui(app: &Application) {
     let swap_bar = ProgressBar::new();
     let os_label = Label::new(Some(&page_info::os_info()));
     let disk_label = Label::new(Some(&page_info::disk_info()));
+    let components_label = Label::new(Some(&page_info::components_info()));
 
     os_label.add_css_class("text");
     disk_label.add_css_class("text");
+    components_label.add_css_class("comptext");
+    let disk_listbox: gtk::ListBox = gtk::ListBox::new();
+    disk_listbox.append(&disk_label);
 
-    let listbox: gtk::ListBox = gtk::ListBox::new();
-    listbox.append(&disk_label);
+    let components_listbox = gtk::ListBox::new();
+    components_listbox.append(&components_label);
 
-    let scrolled_window = ScrolledWindow::builder()
+    let disk_scrolled_window = ScrolledWindow::builder()
         .min_content_width(10)
         .hscrollbar_policy(gtk::PolicyType::Always)
-        .child(&listbox)
+        .child(&disk_listbox)
         .build();
+
+        let components_scrolled_window = ScrolledWindow::builder()
+        .min_content_width(10)
+        .hscrollbar_policy(gtk::PolicyType::Always)
+        .child(&components_listbox)
+        .build();
+
+    let networks_label = Label::new(Some(&networks()));
+    networks_label.add_css_class("text");
+
 
     let tabs = Notebook::new();
     tabs.append_page(
@@ -40,7 +54,9 @@ pub fn draw_gui(app: &Application) {
         Some(&Label::new(Some("MEM INFO"))),
     );
     tabs.append_page(&os_label, Some(&Label::new(Some("OS INFO"))));
-    tabs.append_page(&scrolled_window, Some(&Label::new(Some("DISK INFO"))));
+    tabs.append_page(&disk_scrolled_window, Some(&Label::new(Some("DISK INFO"))));
+    tabs.append_page(&components_scrolled_window, Some(&Label::new(Some("COMP"))));
+    tabs.append_page(&networks_label, Some(&Label::new(Some("NETWORK"))));
 
     let tick = move || {
         let mut sys = System::new_all();
@@ -57,6 +73,9 @@ pub fn draw_gui(app: &Application) {
 
         fr = used / total;
         swap_bar.set_fraction(fr);
+        
+        components_label.set_text(&page_info::components_info());
+        networks_label.set_text(&networks());
         glib::ControlFlow::Continue
     };
 

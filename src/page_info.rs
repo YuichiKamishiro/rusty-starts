@@ -1,6 +1,5 @@
 use gtk::{prelude::*, Box, Label, ProgressBar};
-use sysinfo::Disks;
-use sysinfo::System;
+use sysinfo::{System, Disks, Networks, Components};
 
 pub fn memory_info() -> String {
     let mut sys = System::new_all();
@@ -70,4 +69,30 @@ pub fn memory_page(mem_bar: &ProgressBar, swap_bar: &ProgressBar) -> Box {
     mbox.append(swap_bar);
     mbox.append(&swap_label);
     mbox
+}
+
+pub fn networks() -> String {
+    let mut networks = Networks::new_with_refreshed_list();
+    let mut networks_string = String::new();
+    for (interface_name, data) in &networks {
+        networks_string.push_str(&format!(
+            "{interface_name}: {} B (down) / {} B (up)\n",
+            data.total_received() / (1024 * 1024),
+            data.total_transmitted() / (1024 * 1024),
+        ));
+    }
+    networks_string
+}
+
+pub fn components_info() -> String {
+    let components = Components::new_with_refreshed_list();
+    let mut components_string = String::new();
+    println!("=> components:");
+    for component in &components {
+        components_string.push_str(
+            &format!("{component:?}")
+        );
+        components_string.push('\n');
+    }
+    components_string
 }
